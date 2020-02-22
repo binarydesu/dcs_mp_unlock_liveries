@@ -16,6 +16,7 @@ Use at your own risk.
 - Only works of you have ONE DCS install where you run the script, also it needs to contain "DCS World" 
 - Copying files will override already existing files without prompt, make sure .\DCS_Unlocked_Liveries\ does not exist in your folder 
 - script also overrides default skins in MODs folder (nothing concerning but unnecessary) 
+- Runnning t two times will break the description.lua and disable the skin
 
 # ToDo 
 
