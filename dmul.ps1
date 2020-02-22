@@ -26,13 +26,8 @@ if ($direcotry.Name -match 'DCS World') {
 
 	#count entries
 	$count = $luapaths.Length
-	
-	
-	Write-Output $luapaths
-	
 
 	$save = Read-Host -Prompt "Do you want to change $count files in $dcspath ? (y/n)"
-
 
 	if ($save -eq 'y' -or $save -eq 'Y'){ 
 		#replace matched string
@@ -43,5 +38,5 @@ if ($direcotry.Name -match 'DCS World') {
 	}
 c
 } else {
-Write-Output "no dcs found :("
+Write-Output "DCS not found :("
 }
