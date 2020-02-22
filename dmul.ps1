@@ -36,7 +36,7 @@ if ($direcotry.Name -match 'DCS World') {
 		Write-Output "Exiting Script"
 		exit
 	}
-c
+
 } else {
 Write-Output "DCS not found :("
 }
