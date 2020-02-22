@@ -2,13 +2,13 @@
 $directory = Get-Childitem -LiteralPath $PWD
 
 #Regular expression to find countries = {"xxx", "yyy", "zzz"}
-$regex = "(\bcountries\b[\s][\=][\s][`{][\s]*){1}([\s]*[`"][A-Z]{3}[`"][`,]*[\s]*)+([\s]*[`}])"
+$regex = '(?m)(\bcountries\b[\s\S][\=][\s\S]*[\{][\s\S]*){1}([\s\S]*[\"][A-Z]{3}[\"][\,]*[\s\S]*)+([\s\S]*[\}])'
 
 #regular expression to insert above groups but as commentary
 $regin = "--[[ `$1 `n `t `$2 `n `$3 ]]"
 
 #Regex containing all modules
-$modules = ".*A-10A.*|.*A-10C.*|.*AJS37.*|.*AV8BNA.*|.*BF-109K-4.*|.*C-101.*|.*Christian Eagle II.*|.*f_a-18C.*|.*F-15C.*|.*F-16C.*|.*f-16c bl.50.*|.*F-5EF-86.*|.*F14.*|.*FA-18C.*|.*FW-190A8.*|.*FW-190D9.*|.*I-16.*|.*ka-50.*|.*L-39.*|.*M-2000C.*|.*Mi-8mt.*|.*MiG-15bis.*|.*MiG-19P.*|.*MiG-21bis.*|.*mig-29a.*|.*mig-29g.*|.*mig-29s.*|.*mirage 2000-5.*|.*P-51D.*|.*SA342.*|.*su-25.*|.*su-25t.*|.*su-27.*|.*su-33.*|.*uh-1h.*|.*YAK-52.*|.*JF-17.*|.*J-11A.*|.*ChinaAssetPack.*|.*SpitfireLFMkIX.*"
+$modules = '.*A-10A.*|.*A-10C.*|.*AJS37.*|.*AV8BNA.*|.*BF-109K-4.*|.*C-101.*|.*Christian Eagle II.*|.*f_a-18C.*|.*F-15C.*|.*F-16C.*|.*f-16c bl.50.*|.*F-5EF-86.*|.*F14.*|.*FA-18C.*|.*FW-190A8.*|.*FW-190D9.*|.*I-16.*|.*ka-50.*|.*L-39.*|.*M-2000C.*|.*Mi-8mt.*|.*MiG-15bis.*|.*MiG-19P.*|.*MiG-21bis.*|.*mig-29a.*|.*mig-29g.*|.*mig-29s.*|.*mirage 2000-5.*|.*P-51D.*|.*SA342.*|.*su-25.*|.*su-25t.*|.*su-27.*|.*su-33.*|.*uh-1h.*|.*YAK-52.*|.*JF-17.*|.*J-11A.*|.*ChinaAssetPack.*|.*SpitfireLFMkIX.*'
 
 
 #check if DCS is in the same directory as script
@@ -34,7 +34,7 @@ if ($directory.FullName -match "DCS World") {
 		#replace inside DCS folder
 		{$_ -match 'y' -or $_ -match 'Y'} {
 
-			$luapaths | ForEach-Object  {$(Get-Content -LiteralPath "$_") -replace $regex, $regin | Set-Content -LiteralPath "$_"}
+			$luapaths | ForEach-Object  {$(Get-Content -LiteralPath "$_" -Raw) -replace $regex, $regin | Set-Content -LiteralPath "$_"}
 
 		}
 
@@ -43,7 +43,7 @@ if ($directory.FullName -match "DCS World") {
 
 			for ($i = 0; $i -lt $count; $i++) {
 
-				#little check so the created fodlers can be put inside dcs main directory for overwrite
+				#little check so the created folders can be put inside dcs main directory for overwrite
 				if ($luapaths[$i] -match [regex]::escape("\Bazar\")) {
 
 					$subfolderscount = 5
@@ -57,11 +57,11 @@ if ($directory.FullName -match "DCS World") {
 				#ugly string replacement/construction to .\DCS_Unlocked_Liveries\*
 				$tmppath = $copypath + $(($luapaths[$i].Split("\") | Select-Object -Last $subfolderscount) -join "\")
 				
-				#create new fodler structure
+				#create new folder structure
 				New-Item -ItemType File -Path $tmppath -Force | Out-Null
 				
 				#write/fill luas
-				(Get-Content -LiteralPath $luapaths[$i]) -replace $regex, $regin | Set-Content -LiteralPath $tmppath
+				(Get-Content -LiteralPath $luapaths[$i] -Raw) -replace $regex, $regin | Set-Content -LiteralPath $tmppath
 
 			}
 
