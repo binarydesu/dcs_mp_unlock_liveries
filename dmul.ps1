@@ -17,7 +17,7 @@ if ($directory.FullName -match "DCS World") {
 	#get full path to DSC World
 	$dcspath = $directory | Where-Object {$_ -match "DCS World"} | Select-Object  -ExpandProperty FullName 
 	#path for copy option
-	$copypath = Join-Path -Path $PWD -ChildPath "DCS_Unlocked_Liveries" 
+	$copypath = Join-Path -Path $PWD -ChildPath "DCS_Unlocked_Liveries\" 
 
 	Write-Output "DSC found in: $dcspath"
 
