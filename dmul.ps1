@@ -55,11 +55,11 @@ if ($copypath -ne $false) {
 	}
 }
 
-#Regular expression to find countries = {"xxx", "yyy", "zzz"}
-$regex = '(?m)^(\bcountries\b[\s\S]*[\=][\s\S]*[\{][\s\S]*){1}([\s\S]*[\"][A-Z]*[\"][\,]*[\s\S]*)+([\s\S]*[\}])'
+#Regular expression to find countries = {"xx", "yyy", "zzzzz"}
+$regex = '(?ms)^(\bcountries\b.*?[\=].*?[\{].*?){1}(.*?[\"][A-Z]*?[\"][\,]*.*?)+?(.*?[\}])+?'
 
 #Regex to check if file is already modified
-$regcheck = '(?m)^([\-]{2}([\[]{2}|[\[]{0}))+[\s]*(\bcountries\b)+[\s\S]*([\]]{2})*'
+$regcheck = '(?ms)^([\-]{2})([\[]{2}|[\[]{0})+([\s]*?)(\bcountries\b.*?[\=].*?)+'
 
 #regular expression to insert groups but as commentary
 $regin = "--[[ `$1 `n `t `$2 `n `$3 ]]"
@@ -87,7 +87,7 @@ if ($copypath -ne $false) {
 	$modifiedcount = 0
 	$unmodifiedcount = 0
 	$nomatchcount = 0
-	for ($i = 0; $i -lt $count; $i++) {
+	for ($i = 0; $i -lt $count; $i++) {		
 		#little check so the created folders can be put inside dcs main directory for overwrite
 		if ($luapaths[$i] -match $bazaresc) {
 			$subfolderscount = 5
@@ -99,17 +99,18 @@ if ($copypath -ne $false) {
 			Write-Output "Something went wrong! Exiting"
 			exit
 		}
+
 		#ugly string replacement/construction to $CopyPath
 		$tmppath = Join-Path -Path $copypath -ChildPath $((($luapaths[$i]).Line.Split("\") | Select-Object -Last $subfolderscount) -join "\")
-				
-		#create new folder structure
-		New-Item -ItemType File -Path $tmppath -Force | Out-Null
-				
+		
 		#check if already modified then write/fill luas
 		if ((Get-Content -LiteralPath $luapaths[$i] -Raw) -match $regcheck) {
 			$unmodifiedcount++
 		}
 		elseif ((Get-Content -LiteralPath $luapaths[$i] -Raw) -match $regex) {
+			#create new folder structure
+			New-Item -ItemType File -Path $tmppath -Force | Out-Null
+
 			(Get-Content -LiteralPath $luapaths[$i] -Raw) -replace $regex, $regin | Set-Content -LiteralPath $tmppath
 			$modifiedcount++
 		}
@@ -128,15 +129,13 @@ else {
 	$unmodifiedcount = 0
 	$nomatchcount = 0
 	for ($i = 0; $i -lt $count; $i++) {
-		
 		if ((Get-Content -LiteralPath $luapaths[$i] -Raw) -match $regcheck) {
 			$unmodifiedcount++
-			
-		}
+		}	
 		elseif ((Get-Content -LiteralPath $luapaths[$i] -Raw) -match $regex) {
 			#Modify .lua files in DCS directory
-			$luapaths | ForEach-Object { $(Get-Content -LiteralPath "$_" -Raw) -replace $regex, $regin | Set-Content -LiteralPath "$_" }
-			$modifiedcount++			
+			(Get-Content -LiteralPath $luapaths[$i] -Raw) -replace $regex, $regin | Set-Content -LiteralPath $luapaths[$i]
+			$modifiedcount++
 		}
 		else {
 			$nomatchcount++
@@ -150,5 +149,5 @@ if ($unmodifiedcount -gt 0) {
 	Write-Output "Seems like $unmodifiedcount files were already modified, didn't touch those"
 }
 if ($nomatchcount -gt 0) {
-	Write-Output "Seems like $nomatchcount had no country definition, didn't touch those"
+	Write-Output "Seems like $nomatchcount files had no country definition, didn't touch those"
 }
