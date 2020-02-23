@@ -16,8 +16,8 @@ Use at your own risk.
 - if you can't run scripts: open PowerShell as Administrator and run `set-executionpolicy remotesigned` 
 - Copying files will override already existing files (with the same name) without prompt, make sure your folder is correct
 - some description.luas are already modified by default, those won't be copied/modified
-- ~~ Only works of you have ONE DCS install where you run the script, also it needs to contain "DCS World" ~~
-- ~~ script also overrides default skins in MODs folder (nothing concerning but unnecessary) ~~
+- ~~Only works of you have ONE DCS install where you run the script, also it needs to contain "DCS World"~~
+- ~~script also overrides default skins in MODs folder (nothing concerning but unnecessary)~~
 
 ## ToDo 
 
