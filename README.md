@@ -22,5 +22,6 @@ Use at your own risk.
 
 ## ToDo 
 
-- [x] Make it run with parameters for dcs path and save path 
+- [x] Make it run with parameters for dcs path and save path
+- [ ] Read modules from file/or get them in an other way
 - [ ] Handle Exception when no valid path is given
