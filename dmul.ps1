@@ -5,7 +5,7 @@ Add-Type -AssemblyName System.Windows.Forms
 [Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms") | Out-Null
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
-#Broser Window konfiguration
+#Broser Window configuration
 $FolderBrowserDCSPath = New-Object System.Windows.Forms.FolderBrowserDialog 
 $FolderBrowserDCSPath.RootFolder = [System.Environment+SpecialFolder]'MyComputer'
 $FolderBrowserDCSPath.ShowNewFolderButton = $false
@@ -14,17 +14,25 @@ $FolderBrowserDCSPath.Description = "Select Directory To DCS"
 $FolderBrowserCopyPath = New-Object System.Windows.Forms.FolderBrowserDialog
 $FolderBrowserCopyPath.RootFolder = [System.Environment+SpecialFolder]'MyComputer'
 $FolderBrowserCopyPath.ShowNewFolderButton = $true
-$FolderBrowserCopyPath.Description = "Select Export Directory" 
+
+#new form so everything comes into foreground
+$Topmost = New-Object System.Windows.Forms.Form
+$Topmost.TopMost = $True
+$Topmost.MinimizeBox = $True
 
 #calling first window
-[void]$FolderBrowserDCSPath.ShowDialog()
+if($FolderBrowserDCSPath.ShowDialog($Topmost) -eq "Cancel") {
+	exit
+}
 
 #Ask user for export
-$ifexport = [System.Windows.Forms.Messagebox]::Show("Do you want to export the files and then modify (will not change any game data)?", "Export descritpion.luas?", [System.Windows.Forms.MessageBoxButtons]::YesNo )
+$ifexport = [System.Windows.Forms.Messagebox]::Show($Topmost,"Do you want to export the files and then modify? This won't change the files in your DCS directory?", "Export descritpion.luas?", [System.Windows.Forms.MessageBoxButtons]::YesNo )
 
 if ($ifexport -eq "Yes")
 {
-	[void]$FolderBrowserCopyPath.ShowDialog()
+	if($FolderBrowserCopyPath.ShowDialog($Topmost) -eq "Cancel") {
+		exit
+	}
 }
 
 #Save Paths
@@ -43,25 +51,19 @@ if (Test-Path -Path  $dcspath) {
 	#Escaped path to CoreMods
 	$coremodesc = [regex]::escape(($(Join-Path -Path $dcspath -ChildPath 'CoreMods')))
 
-	if (!($directory.FullName -match $bazaresc) -and ($directory.FullName -match $coremodesc)) {
-		Write-Output "'$dcspath' DCS not found in this directory"
+	if (!(($directory.FullName -match $bazaresc) -and ($directory.FullName -match $coremodesc))) {
+		Write-Output "'$dcspath' DCS not found in this directory, exiting"
 		exit
 	}
 }
 else {
-	Write-Output "'$dcspath' Invalid directory"
+	Write-Output "'$dcspath' Invalid directory, exiting"
 	exit
 }
 
 #Validate CopyPath argument
 if ($copypath -ne "") {
-
-	if (Test-Path -Path $copypath) {
-
-		$copypath = Resolve-Path -LiteralPath $copypath
-		Write-Output "'$copypath' Directory is valid and will be used to save modified .luas"
-	}
-	else {
+	if (!(Test-Path -Path $copypath)) {
 		Write-Output "'$copypath' Directory is not valid. Exiting Script"
 		exit
 	}
@@ -79,8 +81,6 @@ $regin = "--[[ `$1 `n `t `$2 `n `$3 ]]"
 #Regex containing all modules
 $modules = '.*A-10A.*|.*A-10C.*|.*AJS37.*|.*AV8BNA.*|.*BF-109K-4.*|.*C-101.*|.*Christen Eagle II.*|.*f_a-18C.*|.*F-15C.*|.*F-16C.*|.*f-16c bl.50.*|.*F-5EF-86.*|.*F14.*|.*FA-18C.*|.*FW-190A8.*|.*FW-190D9.*|.*I-16.*|.*ka-50.*|.*L-39.*|.*M-2000C.*|.*Mi-8mt.*|.*MiG-15bis.*|.*MiG-19P.*|.*MiG-21bis.*|.*mig-29a.*|.*mig-29g.*|.*mig-29s.*|.*mirage 2000-5.*|.*P-51D.*|.*SA342.*|.*su-25.*|.*su-25t.*|.*su-27.*|.*su-33.*|.*uh-1h.*|.*YAK-52.*|.*JF-17.*|.*J-11A.*|.*ChinaAssetPack.*|.*SpitfireLFMkIX.*'
 
-Write-Output "DSC found in: $dcspath"
-
 #get description.lua file paths and only get those from modules and only those in Bazar and CoreMods
 $luapaths = Get-ChildItem -LiteralPath $dcspath -Recurse -Filter "description.lua" | 
 Where-Object { $_.FullName -match $modules } | 
@@ -93,7 +93,7 @@ $count = $luapaths.Length
 #check if there is a copy path
 if ($copypath -ne "") {
 	#ask user to continue
-	if ($([System.Windows.Forms.Messagebox]::Show("Copy and Modify $count files in '$dcspath' to '$copypath' ?", "Copy descritpion.luas?", [System.Windows.Forms.MessageBoxButtons]::YesNo )) -notmatch 'Yes') { exit }
+	if ($([System.Windows.Forms.Messagebox]::Show($Topmost, "Copy and Modify $count files in '$dcspath' to '$copypath' ?", "Copy descritpion.luas?", [System.Windows.Forms.MessageBoxButtons]::YesNo )) -notmatch 'Yes') { exit }
 	
 	#counter for already modified/not modified files
 	$modifiedcount = 0
@@ -101,7 +101,7 @@ if ($copypath -ne "") {
 	$nomatchcount = 0
 	for ($i = 0; $i -lt $count; $i++) {	
 		#Show Progress Bar
-		Write-Progress -Activity "modifing files" -status "modifing file $i" -percentComplete ($i / $count*100)
+		Write-Progress -Activity "Copying and Modifying files" -status "Modifing file $i" -CurrentOperation $luapaths[$i] -percentComplete ($i / $count*100) 
 		
 		#little check so the created folders can be put inside dcs main directory for overwrite
 		if ($luapaths[$i] -match $bazaresc) {
@@ -133,11 +133,11 @@ if ($copypath -ne "") {
 			$nomatchcount++
 		}
 	}	
-	Write-Output "Successfully copied and changed $modifiedcount files"
+	$modi = "Successfully changed $modifiedcount files"
 }
 else {
 	#No copy path given, Ask user to continue
-	if ($([System.Windows.Forms.Messagebox]::Show("Modify $count files in $dcspath ?", "Modify descritpion.luas?", [System.Windows.Forms.MessageBoxButtons]::YesNo )) -notmatch 'Yes') { exit }
+	if ($([System.Windows.Forms.Messagebox]::Show($Topmost, "Modify $count files in $dcspath ?", "Modify descritpion.luas?", [System.Windows.Forms.MessageBoxButtons]::YesNo )) -notmatch 'Yes') { exit }
 
 	#counter for already modified/not modified files
 	$modifiedcount = 0
@@ -145,7 +145,7 @@ else {
 	$nomatchcount = 0
 	for ($i = 0; $i -lt $count; $i++) {
 		#Show Progress Bar
-		Write-Progress -Activity "Copying and modifing files" -status  $i -percentComplete ($i / $count*100)
+		Write-Progress -Activity "Modifing files in $dcspath" -status $i -CurrentOperation $luapaths[$i] -percentComplete ($i / $count*100)
 		
 		if ((Get-Content -LiteralPath $luapaths[$i] -Raw) -match $regcheck) {
 			$unmodifiedcount++
@@ -159,12 +159,10 @@ else {
 			$nomatchcount++
 		}
 	}
-	Write-Output "Successfully changed $modifiedcount files"
 }
 
-if ($unmodifiedcount -gt 0) {
-	Write-Output "Seems like $unmodifiedcount files were already modified, didn't touch those"
-}
-if ($nomatchcount -gt 0) {
-	Write-Output "Seems like $nomatchcount files had no country definition, didn't touch those"
-}
+$modi = "Successfully changed $modifiedcount files"
+$unmod = "Seems like $unmodifiedcount files were already modified, didn't touch those"
+$nomatch = "Seems like $nomatchcount files had no country definition, didn't touch those"
+
+Write-Output "$modi`n$unmod`n$nomatch"
