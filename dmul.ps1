@@ -1,23 +1,35 @@
-#Argument handle
-param (
-	[parameter(
-		Mandatory = $true,
-		Position = 0,
-		HelpMessage = "Enter DCS Path for modifiying liveries")]
-	[ValidateCount(1, 1)]
-	[Alias("path", "dcs", "dp")]
-	[String[]]
-	$dcspath,
-	
-	[parameter(
-		Mandatory = $false,
-		Position = 1,
-		HelpMessage = "Enter Save Path for modified liveries")]
-	[ValidateCount(1, 1)]
-	[Alias("copy", "cp")]
-	[String[]]
-	$copypath = $false
-)
+#include Windows Forms
+Add-Type -AssemblyName System.Windows.Forms
+
+#Some Settings for the windows
+[Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms") | Out-Null
+[System.Windows.Forms.Application]::EnableVisualStyles()
+
+#Broser Window konfiguration
+$FolderBrowserDCSPath = New-Object System.Windows.Forms.FolderBrowserDialog 
+$FolderBrowserDCSPath.RootFolder = [System.Environment+SpecialFolder]'MyComputer'
+$FolderBrowserDCSPath.ShowNewFolderButton = $false
+$FolderBrowserDCSPath.Description = "Select Directory To DCS"
+
+$FolderBrowserCopyPath = New-Object System.Windows.Forms.FolderBrowserDialog
+$FolderBrowserCopyPath.RootFolder = [System.Environment+SpecialFolder]'MyComputer'
+$FolderBrowserCopyPath.ShowNewFolderButton = $true
+$FolderBrowserCopyPath.Description = "Select Export Directory" 
+
+#calling first window
+[void]$FolderBrowserDCSPath.ShowDialog()
+
+#Ask user for export
+$ifexport = [System.Windows.Forms.Messagebox]::Show("Do you want to export the files and then modify (will not change any game data)?", "Export descritpion.luas?", [System.Windows.Forms.MessageBoxButtons]::YesNo )
+
+if ($ifexport -eq "Yes")
+{
+	[void]$FolderBrowserCopyPath.ShowDialog()
+}
+
+#Save Paths
+$dcspath = $FolderBrowserDCSPath.SelectedPath
+$copypath = $FolderBrowserCopyPath.SelectedPath
 
 #Check if directory has Bazar and CoreMods
 if (Test-Path -Path  $dcspath) {
@@ -42,7 +54,7 @@ else {
 }
 
 #Validate CopyPath argument
-if ($copypath -ne $false) {
+if ($copypath -ne "") {
 
 	if (Test-Path -Path $copypath) {
 
@@ -79,15 +91,18 @@ Select-String -Pattern "$bazaresc", "$coremodesc"
 $count = $luapaths.Length
 
 #check if there is a copy path
-if ($copypath -ne $false) {
+if ($copypath -ne "") {
 	#ask user to continue
-	if ($(Read-Host -Prompt "Copy and Modify $count files in '$dcspath' to '$copypath' ? (y/n)") -notmatch 'y') { exit }
+	if ($([System.Windows.Forms.Messagebox]::Show("Copy and Modify $count files in '$dcspath' to '$copypath' ?", "Copy descritpion.luas?", [System.Windows.Forms.MessageBoxButtons]::YesNo )) -notmatch 'Yes') { exit }
 	
 	#counter for already modified/not modified files
 	$modifiedcount = 0
 	$unmodifiedcount = 0
 	$nomatchcount = 0
-	for ($i = 0; $i -lt $count; $i++) {		
+	for ($i = 0; $i -lt $count; $i++) {	
+		#Show Progress Bar
+		Write-Progress -Activity "modifing files" -status "modifing file $i" -percentComplete ($i / $count*100)
+		
 		#little check so the created folders can be put inside dcs main directory for overwrite
 		if ($luapaths[$i] -match $bazaresc) {
 			$subfolderscount = 5
@@ -122,13 +137,16 @@ if ($copypath -ne $false) {
 }
 else {
 	#No copy path given, Ask user to continue
-	if ($(Read-Host -Prompt "Modify $count files in $dcspath ? (y/n)") -notmatch 'y') { exit }
+	if ($([System.Windows.Forms.Messagebox]::Show("Modify $count files in $dcspath ?", "Modify descritpion.luas?", [System.Windows.Forms.MessageBoxButtons]::YesNo )) -notmatch 'Yes') { exit }
 
 	#counter for already modified/not modified files
 	$modifiedcount = 0
 	$unmodifiedcount = 0
 	$nomatchcount = 0
 	for ($i = 0; $i -lt $count; $i++) {
+		#Show Progress Bar
+		Write-Progress -Activity "Copying and modifing files" -status  $i -percentComplete ($i / $count*100)
+		
 		if ((Get-Content -LiteralPath $luapaths[$i] -Raw) -match $regcheck) {
 			$unmodifiedcount++
 		}	
@@ -143,7 +161,6 @@ else {
 	}
 	Write-Output "Successfully changed $modifiedcount files"
 }
-
 
 if ($unmodifiedcount -gt 0) {
 	Write-Output "Seems like $unmodifiedcount files were already modified, didn't touch those"
