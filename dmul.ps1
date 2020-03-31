@@ -14,7 +14,7 @@ $FolderBrowserDCSPath.Description = "Select DCS Main Directory"
 $FolderBrowserCopyPath = New-Object System.Windows.Forms.FolderBrowserDialog
 $FolderBrowserCopyPath.RootFolder = [System.Environment+SpecialFolder]'MyComputer'
 $FolderBrowserCopyPath.ShowNewFolderButton = $true
-$FolderBrowserDCSPath.Description = "Select Directory for Exported files"
+$FolderBrowserCopyPath.Description = "Select Directory for Exported files"
 
 #new form so everything comes into foreground
 $Topmost = New-Object System.Windows.Forms.Form
