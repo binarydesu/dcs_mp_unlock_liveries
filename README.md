@@ -9,7 +9,7 @@ Use at your own risk!
 **Either** Download Win-PS2EXE (https://gallery.technet.microsoft.com/scriptcenter/PS2EXE-GUI-Convert-e7cb69d5)
 and Compile the Script yourself. (You might have to add a Version number, otherwise windows defender/anti virus thinks it's malware)
 
-**Or** download the executable here: https://drive.google.com/file/d/1lZo_jRdzYoEisGYSYe33r-ZEHYyG2-8I/view?usp=sharing
+**Or** download the executable `UnlockLiveries.exe`
 
 Execute the File and follow the workflow
 
