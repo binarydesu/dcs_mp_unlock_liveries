@@ -9,11 +9,12 @@ Add-Type -AssemblyName System.Windows.Forms
 $FolderBrowserDCSPath = New-Object System.Windows.Forms.FolderBrowserDialog 
 $FolderBrowserDCSPath.RootFolder = [System.Environment+SpecialFolder]'MyComputer'
 $FolderBrowserDCSPath.ShowNewFolderButton = $false
-$FolderBrowserDCSPath.Description = "Select Directory To DCS"
+$FolderBrowserDCSPath.Description = "Select DCS Main Directory"
 
 $FolderBrowserCopyPath = New-Object System.Windows.Forms.FolderBrowserDialog
 $FolderBrowserCopyPath.RootFolder = [System.Environment+SpecialFolder]'MyComputer'
 $FolderBrowserCopyPath.ShowNewFolderButton = $true
+$FolderBrowserDCSPath.Description = "Select Directory for Exported files"
 
 #new form so everything comes into foreground
 $Topmost = New-Object System.Windows.Forms.Form
@@ -26,7 +27,7 @@ if($FolderBrowserDCSPath.ShowDialog($Topmost) -eq "Cancel") {
 }
 
 #Ask user for export
-$ifexport = [System.Windows.Forms.Messagebox]::Show($Topmost,"Do you want to export the files and then modify? This won't change the files in your DCS directory?", "Export descritpion.luas?", [System.Windows.Forms.MessageBoxButtons]::YesNo )
+$ifexport = [System.Windows.Forms.Messagebox]::Show($Topmost,"Do you want to export the files and then modify? This won't change the files in your DCS directory.", "Export descritpion.luas?", [System.Windows.Forms.MessageBoxButtons]::YesNo )
 
 if ($ifexport -eq "Yes")
 {
