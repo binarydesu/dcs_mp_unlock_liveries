@@ -5,7 +5,7 @@ Add-Type -AssemblyName System.Windows.Forms
 [Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms") | Out-Null
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
-#Broser Window configuration
+#Browser Window configuration
 $FolderBrowserDCSPath = New-Object System.Windows.Forms.FolderBrowserDialog 
 $FolderBrowserDCSPath.RootFolder = [System.Environment+SpecialFolder]'MyComputer'
 $FolderBrowserDCSPath.ShowNewFolderButton = $false
@@ -80,7 +80,7 @@ $regcheck = '(?ms)^([\-]{2})([\[]{2}|[\[]{0})+([\s]*?)(\bcountries\b.*?[\=].*?)+
 $regin = "--[[ `$1 `n `t `$2 `n `$3 ]]"
 
 #Regex containing all modules
-$modules = '.*A-10A.*|.*A-10C.*|.*AJS37.*|.*AV8BNA.*|.*BF-109K-4.*|.*C-101.*|.*Christen Eagle II.*|.*f_a-18C.*|.*F-15C.*|.*F-16C.*|.*f-16c bl.50.*|.*F-5EF-86.*|.*F14.*|.*FA-18C.*|.*FW-190A8.*|.*FW-190D9.*|.*I-16.*|.*ka-50.*|.*L-39.*|.*M-2000C.*|.*Mi-8mt.*|.*MiG-15bis.*|.*MiG-19P.*|.*MiG-21bis.*|.*mig-29a.*|.*mig-29g.*|.*mig-29s.*|.*mirage 2000-5.*|.*P-51D.*|.*SA342.*|.*su-25.*|.*su-25t.*|.*su-27.*|.*su-33.*|.*uh-1h.*|.*YAK-52.*|.*JF-17.*|.*J-11A.*|.*ChinaAssetPack.*|.*SpitfireLFMkIX.*'
+$modules = '.*A-10A.*|.*A-10C.*|.*AJS37.*|.*AV8BNA.*|.*BF-109K-4.*|.*C-101.*|.*Christen Eagle II.*|.*f_a-18C.*|.*F-15C.*|.*F-16C.*|.*F-5E.*|.F-86.*|.*F14.*|.*FA-18C.*|.*FW-190A8.*|.*FW-190D9.*|.*I-16.*|.*ka-50.*|.*L-39.*|.*M-2000C.*|.*Mi-8mt.*|.*MiG-15bis.*|.*MiG-19P.*|.*MiG-21bis.*|.*mig-29a.*|.*mig-29g.*|.*mig-29s.*|.*P-51D.*|.*SA342.*|.*su-25.*|.*su-25t.*|.*su-27.*|.*su-33.*|.*uh-1h.*|.*YAK-52.*|.*JF-17.*|.*J-11A.*|.*ChinaAssetPack.*|.*SpitfireLFMkIX.*'
 
 #get description.lua file paths and only get those from modules and only those in Bazar and CoreMods
 $luapaths = Get-ChildItem -LiteralPath $dcspath -Recurse -Filter "description.lua" | 
