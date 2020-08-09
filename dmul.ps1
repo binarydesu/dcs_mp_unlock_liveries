@@ -27,7 +27,7 @@ if($FolderBrowserDCSPath.ShowDialog($Topmost) -eq "Cancel") {
 }
 
 #Ask user for export
-$ifexport = [System.Windows.Forms.Messagebox]::Show($Topmost,"Do you want to export the files and then modify? This won't change the files in your DCS directory.", "Export descritpion.luas?", [System.Windows.Forms.MessageBoxButtons]::YesNo )
+	$ifexport = [System.Windows.Forms.Messagebox]::Show($Topmost,"Do you want to export the files and then modify?`nThis won't change the files in your DCS directory.`nThe files can than be put inside your '...\saved games\dcs\liveries' folder", "Export descritpion.luas?", [System.Windows.Forms.MessageBoxButtons]::YesNo )
 
 if ($ifexport -eq "Yes")
 {
@@ -39,6 +39,62 @@ if ($ifexport -eq "Yes")
 #Save Paths
 $dcspath = $FolderBrowserDCSPath.SelectedPath
 $copypath = $FolderBrowserCopyPath.SelectedPath
+
+#Regular expression to find countries = {"xx", "yyy", "zzzzz"}
+$regex = '(?ms)^(\bcountries\b.*?[\=].*?[\{].*?){1}(.*?[\"][A-Z]*?[\"][\,]*.*?)+?(.*?[\}])+?'
+
+#Regex to check if file is already modified
+$regcheck = '(?ms)^([\-]{2})([\[]{2}|[\[]{0})+([\s]*?)(\bcountries\b.*?[\=].*?)+'
+
+#regular expression to insert groups but as commentary
+$regin = "--[[ `$1 `n `t `$2 `n `$3 ]]"
+
+#Regex containing all modules
+$modules = @(
+			'.*A-10A.*',
+			'.*A-10C.*',
+			'.*AJS37.*',
+			'.*AV8BNA.*',
+			'.*BF-109K-4.*',
+			'.,*C-101CC.*',
+			'.,*C-101EB.*',
+			'.*Christen Eagle II.*',
+			'.*FA-18C_hornet.*',
+			'.*F-15C.*',
+			'.*F-16C_50.*',
+			'.*F-5E.*',
+			'.*F-5E-3.*',
+			'.f-86f sabre.*',
+			'.*f14b.*',
+			'.*FA-18C.*',
+			'.*FW-190A8.*',
+			'.*FW-190D9.*',
+			'.*Hawk.*',
+			'.*I-16.*',
+			'.*ka-50.*',
+			'.*L-39C.*',
+			'.*L-39ZA.*',
+			'.*M-2000C.*',
+			'.*Mi-8mt.*',
+			'.*MiG-15bis.*',
+			'.*MiG-19P.*',
+			'.*MiG-21Bis.*',
+			'.*mig-29a.*',
+			'.*mig-29g.*',
+			'.*mig-29s.*',
+			'.*P-51D.*',
+			'.*SA342.*',
+			'.*su-25.*',
+			'.*su-25t.*',
+			'.*su-27.*',
+			'.*su-33.*',
+			'.*uh-1h.*',
+			'.*YAK-52.*',
+			'.*JF-17.*',
+			'.*J-11A.*',
+			'.*SpitfireLFMkIX.*'
+)
+
 
 #Check if directory has Bazar and CoreMods
 if (Test-Path -Path  $dcspath) {
@@ -70,26 +126,16 @@ if ($copypath -ne "") {
 	}
 }
 
-#Regular expression to find countries = {"xx", "yyy", "zzzzz"}
-$regex = '(?ms)^(\bcountries\b.*?[\=].*?[\{].*?){1}(.*?[\"][A-Z]*?[\"][\,]*.*?)+?(.*?[\}])+?'
-
-#Regex to check if file is already modified
-$regcheck = '(?ms)^([\-]{2})([\[]{2}|[\[]{0})+([\s]*?)(\bcountries\b.*?[\=].*?)+'
-
-#regular expression to insert groups but as commentary
-$regin = "--[[ `$1 `n `t `$2 `n `$3 ]]"
-
-#Regex containing all modules
-$modules = '.*A-10A.*|.*A-10C.*|.*AJS37.*|.*AV8BNA.*|.*BF-109K-4.*|.*C-101.*|.*Christen Eagle II.*|.*f_a-18C.*|.*F-15C.*|.*F-16C.*|.*F-5E.*|.F-86.*|.*F14.*|.*FA-18C.*|.*FW-190A8.*|.*FW-190D9.*|.*I-16.*|.*ka-50.*|.*L-39.*|.*M-2000C.*|.*Mi-8mt.*|.*MiG-15bis.*|.*MiG-19P.*|.*MiG-21bis.*|.*mig-29a.*|.*mig-29g.*|.*mig-29s.*|.*P-51D.*|.*SA342.*|.*su-25.*|.*su-25t.*|.*su-27.*|.*su-33.*|.*uh-1h.*|.*YAK-52.*|.*JF-17.*|.*J-11A.*|.*ChinaAssetPack.*|.*SpitfireLFMkIX.*'
-
 #get description.lua file paths and only get those from modules and only those in Bazar and CoreMods
-$luapaths = Get-ChildItem -LiteralPath $dcspath -Recurse -Filter "description.lua" | 
-Where-Object { $_.FullName -match $modules } | 
-ForEach-Object { $_.FullName } | 
-Select-String -Pattern "$bazaresc", "$coremodesc"
+$alldescrpaths = Get-ChildItem -LiteralPath $(Join-Path -Path $dcspath -ChildPath 'Bazar') -Recurse -Filter "description.lua" 
+$alldescrpaths += Get-ChildItem -LiteralPath $(Join-Path -Path $dcspath -ChildPath 'CoreMods') -Recurse -Filter "description.lua" 
+for ($i = 0 ; $i -lt $modules.count; $i++) {
+	$moduledescrpaths += $alldescrpaths | Where-Object { (($_.Fullname).Split("\") | Select-Object -Last 3) -match $modules[$i] } | ForEach-Object { $_.FullName } 
+}
+
 
 #count entries
-$count = $luapaths.Length
+$count = $moduledescrpaths.Length
 
 #check if there is a copy path
 if ($copypath -ne "") {
@@ -102,13 +148,14 @@ if ($copypath -ne "") {
 	$nomatchcount = 0
 	for ($i = 0; $i -lt $count; $i++) {	
 		#Show Progress Bar
-		Write-Progress -Activity "Copying and Modifying files" -status "Modifing file $i" -CurrentOperation $luapaths[$i] -percentComplete ($i / $count*100) 
+		Write-Progress -Activity "Copying and Modifying files" -status "Modifing file $i" -CurrentOperation $moduledescrpaths[$i] -percentComplete ($i / $count*100) 
 		
+		<# 
 		#little check so the created folders can be put inside dcs main directory for overwrite
-		if ($luapaths[$i] -match $bazaresc) {
+		if ($moduledescrpaths[$i] -match $bazaresc) {
 			$subfolderscount = 5
 		}
-		elseif ($luapaths[$i] -match $coremodesc) {
+		elseif ($moduledescrpaths[$i] -match $coremodesc) {
 			$subfolderscount = 7
 		}
 		else {
@@ -117,17 +164,21 @@ if ($copypath -ne "") {
 		}
 
 		#ugly string replacement/construction to $CopyPath
-		$tmppath = Join-Path -Path $copypath -ChildPath $((($luapaths[$i]).Line.Split("\") | Select-Object -Last $subfolderscount) -join "\")
+		$tmppath = Join-Path -Path $copypath -ChildPath $((($moduledescrpaths[$i]).Line.Split("\") | Select-Object -Last $subfolderscount) -join "\")
+		#>
+
+		#Instead build the folder in a way so it can be put inside "saved games" folder
+		$tmppath = Join-Path -Path $copypath -ChildPath $((($moduledescrpaths[$i]).Split("\") | Select-Object -Last 4) -join "\")
 		
 		#check if already modified then write/fill luas
-		if ((Get-Content -LiteralPath $luapaths[$i] -Raw) -match $regcheck) {
+		if ((Get-Content -LiteralPath $moduledescrpaths[$i] -Raw) -match $regcheck) {
 			$unmodifiedcount++
 		}
-		elseif ((Get-Content -LiteralPath $luapaths[$i] -Raw) -match $regex) {
+		elseif ((Get-Content -LiteralPath $moduledescrpaths[$i] -Raw) -match $regex) {
 			#create new folder structure
 			New-Item -ItemType File -Path $tmppath -Force | Out-Null
 
-			(Get-Content -LiteralPath $luapaths[$i] -Raw) -replace $regex, $regin | Set-Content -LiteralPath $tmppath
+			(Get-Content -LiteralPath $moduledescrpaths[$i] -Raw) -replace $regex, $regin | Set-Content -LiteralPath $tmppath
 			$modifiedcount++
 		}
 		else {
@@ -146,14 +197,14 @@ else {
 	$nomatchcount = 0
 	for ($i = 0; $i -lt $count; $i++) {
 		#Show Progress Bar
-		Write-Progress -Activity "Modifing files in $dcspath" -status $i -CurrentOperation $luapaths[$i] -percentComplete ($i / $count*100)
+		Write-Progress -Activity "Modifing files in $dcspath" -status $i -CurrentOperation $moduledescrpaths[$i] -percentComplete ($i / $count*100)
 		
-		if ((Get-Content -LiteralPath $luapaths[$i] -Raw) -match $regcheck) {
+		if ((Get-Content -LiteralPath $moduledescrpaths[$i] -Raw) -match $regcheck) {
 			$unmodifiedcount++
 		}	
-		elseif ((Get-Content -LiteralPath $luapaths[$i] -Raw) -match $regex) {
+		elseif ((Get-Content -LiteralPath $moduledescrpaths[$i] -Raw) -match $regex) {
 			#Modify .lua files in DCS directory
-			(Get-Content -LiteralPath $luapaths[$i] -Raw) -replace $regex, $regin | Set-Content -LiteralPath $luapaths[$i]
+			(Get-Content -LiteralPath $moduledescrpaths[$i] -Raw) -replace $regex, $regin | Set-Content -LiteralPath $moduledescrpaths[$i]
 			$modifiedcount++
 		}
 		else {
