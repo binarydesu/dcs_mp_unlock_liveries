@@ -1,12 +1,13 @@
-#include Windows Forms
+#include Windows Forms and zip
 Add-Type -AssemblyName System.Windows.Forms
+Add-Type -Assembly 'System.IO.Compression.FileSystem'
 
 #Some Settings for the windows
 [Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms") | Out-Null
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
 #Browser Window configuration
-$FolderBrowserDCSPath = New-Object System.Windows.Forms.FolderBrowserDialog 
+$FolderBrowserDCSPath = New-Object System.Windows.Forms.FolderBrowserDialog
 $FolderBrowserDCSPath.RootFolder = [System.Environment+SpecialFolder]'MyComputer'
 $FolderBrowserDCSPath.ShowNewFolderButton = $false
 $FolderBrowserDCSPath.Description = "Select DCS Main Directory"
@@ -52,13 +53,15 @@ else {
 }
 
 #Ask user for export
-$ifexport = [System.Windows.Forms.Messagebox]::Show($Topmost, "Do you want to export the files and then modify?`nThis won't change the files in your DCS directory.`nThe files can than be put inside your '...\saved games\dcs\liveries' folder", "Export descritpion.luas?", [System.Windows.Forms.MessageBoxButtons]::YesNo )
-
-if ($ifexport -eq "Yes") {
-	if ($FolderBrowserCopyPath.ShowDialog($Topmost) -eq "Cancel") {
-		exit
-	}
+if ([System.Windows.Forms.Messagebox]::Show($Topmost, "Please select a directory, to which you want the files to be copied.`nThis won't change the files in your DCS directory.`nThe files can then be put inside your '...\saved games\dcs\liveries' folder", "Export descritpion.luas?", [System.Windows.Forms.MessageBoxButtons]::OKCancel ) -eq "Cancel") {
+	exit
 }
+
+
+if ($FolderBrowserCopyPath.ShowDialog($Topmost) -eq "Cancel") {
+		exit
+}
+
 
 #Save Path
 $copypath = $FolderBrowserCopyPath.SelectedPath
@@ -72,8 +75,12 @@ if ($ifexport -eq "Yes") {
 }
 
 #make sure variable is empty
-#Remove-Variable -name moduledescrpaths 
+#Remove-Variable -name moduledescrpaths
+$alldescrpaths = @()
 $moduledescrpaths = @()
+$zipmoduledescrpaths = @()
+$zipmoduledescrpathsbasename = @()
+$ziptemp = @()
 
 #counter for already modified/not modified files
 $modifiedcount = 0
@@ -91,123 +98,119 @@ $regin = "--[[ `$1 `n `t `$2 `n `$3 ]]"
 
 #Regex containing all modules
 $modules = @(
-	'.*A-10A.*',
-	'.*A-10C.*',
-	'.*AJS37.*',
-	'.*AV8BNA.*',
-	'.*BF-109K-4.*',
-	'.*C-101CC.*',
-	'.*C-101EB.*',
-	'.*Christen Eagle II.*',
-	'.*F-15C.*',
-	'.*F-16C_50.*',
-	'.*F-5E-3.*',
-	'.*F-5E.*',
-	'.*f-86f sabre.*',
-	'.*f14b.*',
-	'.*FA-18C_hornet.*',
-	'.*FA-18C.*',
-	'.*FW-190A8.*',
-	'.*FW-190D9.*',
-	'.*Hawk.*',
-	'.*I-16.*',
-	'.*J-11A.*',
-	'.*JF-17.*',
-	'.*ka-50.*',
-	'.*L-39C.*',
-	'.*L-39ZA.*',
-	'.*M-2000C.*',
-	'.*Mi-8mt.*',
-	'.*Mi-24P.*',
-	'.*MiG-15bis.*',
-	'.*MiG-19P.*',
-	'.*MiG-21Bis.*',
-	'.*mig-29a.*',
-	'.*mig-29g.*',
-	'.*mig-29s.*',
-	'.*P-51D.*',
-	'.*SA342.*',
-	'.*SpitfireLFMkIX.*',
-	'.*su-25.*',
-	'.*su-25t.*',
-	'.*su-27.*',
-	'.*su-33.*',
-	'.*uh-1h.*',
-	'.*YAK-52.*'
+	'A-10A',
+	'A-10C',
+	'A-10CII',
+	'AH-64D_BLK_II',
+	'AJS37',
+	'AV8BNA',
+	'BF-109K-4',
+	'C-101CC',
+	'C-101EB',
+	'Christen Eagle II',
+	'F-15C',
+	'F-16C_50',
+	'F-5E-3',
+	'F-5E',
+	'f-86f sabre',
+	'F-14A-135-GR',
+	'f14b',
+	'FA-18C_hornet',
+	'FA-18C',
+	'FW-190A8',
+	'FW-190D9',
+	'Hawk',
+	'I-16',
+	'J-11A',
+	'JF-17',
+	'ka-50',
+	'L-39C',
+	'L-39ZA',
+	'M-2000C',
+	'Mi-24P',
+	'Mi-8mt',
+	'MiG-15bis',
+	'MiG-19P',
+	'MiG-21Bis',
+	'mig-29a',
+	'mig-29g',
+	'mig-29s',
+	'P-51D',
+	'SA342L',
+	'SA342M',
+	'SA342Minigun',
+	'SA342Mistral',
+	'SpitfireLFMkIX',
+	'SpitfireLFMkIXCW',
+	'su-25',
+	'su-25t',
+	'su-27',
+	'su-33',
+	'uh-1h',
+	'YAK-52'
 )
 
-
 #get description.lua from Bazar and CoreMods and only those from modules
-$alldescrpaths = Get-ChildItem -LiteralPath $(Join-Path -Path $dcspath -ChildPath 'Bazar') -Recurse -Filter "description.lua" 
-$alldescrpaths += Get-ChildItem -LiteralPath $(Join-Path -Path $dcspath -ChildPath 'CoreMods') -Recurse -Filter "description.lua" 
+$alldescrpaths = Get-ChildItem -LiteralPath $(Join-Path -Path $dcspath -ChildPath 'Bazar') -Recurse -Filter "description.lua"
+$alldescrpaths += Get-ChildItem -LiteralPath $(Join-Path -Path $dcspath -ChildPath 'CoreMods') -Recurse -Filter "description.lua"
+$zipfiles = Get-ChildItem -LiteralPath $(Join-Path -Path $dcspath -ChildPath 'Bazar') -Recurse -Filter "*.zip"
+$zipfiles += Get-ChildItem -LiteralPath $(Join-Path -Path $dcspath -ChildPath 'CoreMods') -Recurse -Filter "*.zip"
+$zipfiles = $zipfiles | Where-Object { $_.Fullname.Split("\") -like "Liveries" }
+
+
+
 for ($i = 0 ; $i -lt $modules.count; $i++) {
-	$moduledescrpaths += $alldescrpaths | Where-Object { (($_.Fullname).Split("\") | Select-Object -Last 3) -match $modules[$i] } | ForEach-Object { $_.FullName } 
+	Write-Progress -Activity "Filtering Files for Modules" -status "Checking files for $i" -CurrentOperation $modules[$i] -percentComplete ($i /  $modules.count * 100)
+
+	$moduledescrpaths += $alldescrpaths | Where-Object { (($_.Fullname).Split("\") | Select-Object -Last 3) -like $modules[$i] } | ForEach-Object { $_.FullName }
+	$zipmoduledescrpaths += $zipfiles | Where-Object { (($_.Fullname).Split("\") | Select-Object -Last 3) -like $modules[$i] } | ForEach-Object { $_.FullName }
+	$zipmoduledescrpathsbasename += $zipfiles | Where-Object { (($_.Fullname).Split("\") | Select-Object -Last 3) -like $modules[$i] } | ForEach-Object { $_.BaseName }
 }
 
 #count entries
-$count = $moduledescrpaths.Length
+$count = $moduledescrpaths.Length + $zipmoduledescrpaths.Length
 
-#check if there is a copy path
-if ($ifexport -eq "Yes") {
-	#ask user to continue
-	if ($([System.Windows.Forms.Messagebox]::Show($Topmost, "Copy and Modify $count files in '$dcspath' to '$copypath' ?", "Copy descritpion.luas?", [System.Windows.Forms.MessageBoxButtons]::YesNo )) -notmatch 'Yes') { exit }
-}
-else {
-	#No copy path given, Ask user to continue
-	if ($([System.Windows.Forms.Messagebox]::Show($Topmost, "Modify $count files in $dcspath ?", "Modify descritpion.luas?", [System.Windows.Forms.MessageBoxButtons]::YesNo )) -notmatch 'Yes') { exit }
+#ask user to continue
+if ($([System.Windows.Forms.Messagebox]::Show($Topmost, "Copy and Modify $count files in '$dcspath' to '$copypath\Liveries' ?", "Copy descritpion.luas?", [System.Windows.Forms.MessageBoxButtons]::YesNo )) -notmatch 'Yes') { exit }
+
+for ($i = 0 ; $i -lt $zipmoduledescrpaths.count; $i++) {
+	Write-Progress -Activity "Exctracting description.luas from .zip" -status "Extracting from $i" -CurrentOperation $zipmoduledescrpaths[$i] -percentComplete ($i / $zipmoduledescrpaths.count * 100)
+
+	$temppath = $(Join-Path -Path $(Join-Path -Path $Env:TEMP -ChildPath $(($zipmoduledescrpaths[$i].Split("\") | Select-Object -Last 2 -Skip 1) -join "\")) -ChildPath $zipmoduledescrpathsbasename[$i])
+	New-Item -ItemType Directory -Path $temppath -Force | Out-Null
+	$ziptemp += $(Join-Path -Path $temppath -ChildPath "description.lua")
+	$zip = [System.IO.Compression.ZipFile]::Open($zipmoduledescrpaths[$i], 'read')
+	$zip.Entries | Where-Object Name -like "description.lua" | ForEach-Object{[System.IO.Compression.ZipFileExtensions]::ExtractToFile($_, $ziptemp[$i], $true)}
+	$zip.Dispose()
 }
 
-for ($i = 0; $i -lt $count; $i++) {	
+$moduledescrpaths = $moduledescrpaths + $ziptemp
+
+for ($i = 0; $i -lt $count; $i++) {
+
 	#Show Progress Bar
-	if ($ifexport -eq "Yes") {
-		Write-Progress -Activity "Copying and Modifying files" -status "Modifing file $i" -CurrentOperation $moduledescrpaths[$i] -percentComplete ($i / $count * 100) 
-	}
-	else {
-		Write-Progress -Activity "Modifing files in $dcspath" -status $i -CurrentOperation $moduledescrpaths[$i] -percentComplete ($i / $count * 100)
-	}
+	Write-Progress -Activity "Copying and Modifying files" -status "Modifing file $i" -CurrentOperation $moduledescrpaths[$i] -percentComplete ($i / $count * 100)
 
-	<# 
-	#little check so the created folders can be put inside dcs main directory for overwrite
-	if ($moduledescrpaths[$i] -match $bazaresc) {
-		$subfolderscount = 5
-	}
-	elseif ($moduledescrpaths[$i] -match $coremodesc) {
-		$subfolderscount = 7
-	}
-	else {
-		Write-Output "Something went wrong! Exiting"
-		exit
-	}
-
-	#ugly string replacement/construction to $CopyPath
-	$tmppath = Join-Path -Path $copypath -ChildPath $((($moduledescrpaths[$i]).Line.Split("\") | Select-Object -Last $subfolderscount) -join "\")
-	#>
-		
 	#check if already modified then write/fill luas
 	if ((Get-Content -LiteralPath $moduledescrpaths[$i] -Raw) -match $regcheck) {
 		$unmodifiedcount++
 	}
 	elseif ((Get-Content -LiteralPath $moduledescrpaths[$i] -Raw) -match $regex) {
 
-		if ($ifexport -eq "Yes") {
-			#Instead build the folder in a way so it can be put inside "saved games\dcs" folder
-			$tmppath = Join-Path -Path $copypath -ChildPath $((($moduledescrpaths[$i]).Split("\") | Select-Object -Last 4) -join "\")
-			#create new folder structure
-			New-Item -ItemType File -Path $tmppath -Force | Out-Null
+		#Instead build the folder in a way so it can be put inside "saved games\dcs" folder
+		$tmppath = Join-Path -Path $copypath -ChildPath $((($moduledescrpaths[$i]).Split("\") | Select-Object -Last 4) -join "\")
+		#create new folder structure
+		New-Item -ItemType File -Path $tmppath -Force | Out-Null
 
-			(Get-Content -LiteralPath $moduledescrpaths[$i] -Raw) -replace $regex, $regin | Set-Content -LiteralPath $tmppath
-			$modifiedcount++
-		}
-		else {
-			#Modify .lua files in DCS directory
-			(Get-Content -LiteralPath $moduledescrpaths[$i] -Raw) -replace $regex, $regin | Set-Content -LiteralPath $moduledescrpaths[$i]
-			$modifiedcount++
-		}
+		(Get-Content -LiteralPath $moduledescrpaths[$i] -Raw) -replace $regex, $regin | Set-Content -LiteralPath $tmppath
+		$modifiedcount++
 	}
 	else {
 		$nomatchcount++
 	}
-}	
+}
+
+Remove-Item $(Join-Path -Path $Env:TEMP -ChildPath "Liveries") -Recurse
 
 $modi = "Successfully changed $modifiedcount files"
 $unmod = "Seems like $unmodifiedcount files were already modified, didn't touch those"
